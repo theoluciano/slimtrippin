@@ -18,7 +18,7 @@ export default async function TripsPage() {
     <main className="flex min-h-screen flex-col bg-muted">
       <header className="bg-muted">
         <div className="mx-auto flex w-full max-w-6xl items-end justify-between px-6 pb-2 pt-6">
-          <span className="wordmark text-[20px] leading-none text-primary">
+          <span className="wordmark text-[20px] leading-none text-brand">
             SlimTrippin&apos;
           </span>
           <div className="flex items-center gap-2">
@@ -39,7 +39,7 @@ export default async function TripsPage() {
               trips.map((trip) => (
                 <article
                   key={trip.id}
-                  className="trip-card flex items-center justify-between gap-4 border border-border bg-card px-5 py-4"
+                  className="trip-card flex items-center justify-between gap-4 border border-border bg-[#F2F2F6] px-5 py-4"
                 >
                   <Link href={`/trips/${trip.id}`} className="flex-1 space-y-2">
                     <h2 className="text-[18px] font-semibold leading-snug text-foreground">
