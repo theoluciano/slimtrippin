@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarIcon } from "lucide-react"
+import { CalendarBlank } from "@phosphor-icons/react"
 import type { DateRange } from "react-day-picker"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -63,7 +63,7 @@ export function DateRangePicker({ startName, endName, defaultStart, defaultEnd }
             variant="outline"
             className={cn("w-full justify-start gap-2 font-normal", !range?.from && "text-muted-foreground")}
           >
-            <CalendarIcon className="size-4 shrink-0" aria-hidden="true" />
+            <CalendarBlank className="size-4 shrink-0" aria-hidden="true" />
             <span>{label}</span>
           </Button>
         </PopoverTrigger>

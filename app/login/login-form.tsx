@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail } from "lucide-react";
+import { Envelope } from "@phosphor-icons/react";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,7 @@ export function LoginForm() {
       </div>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        <Mail className="h-4 w-4" aria-hidden="true" />
+        <Envelope className="h-4 w-4" aria-hidden="true" />
         {isPending ? "Sending" : "Send sign-in link"}
       </Button>
 

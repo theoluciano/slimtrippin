@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Pencil, Plus, Trash2 } from "lucide-react";
+import { SignOut, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 import { createTripAction, deleteTripAction, updateTripAction } from "@/app/trips/actions";
 import { Button } from "@/components/ui/button";
@@ -105,7 +105,7 @@ export function SignOutDialog() {
           </Button>
           <form action="/auth/signout" method="post">
             <Button type="submit">
-              <LogOut aria-hidden="true" />
+              <SignOut aria-hidden="true" />
               Sign out
             </Button>
           </form>
@@ -126,8 +126,10 @@ export function EditTripDialog({ trip }: { trip: Trip }) {
           variant="ghost"
           size="icon"
           aria-label={`Edit ${trip.title}`}
+          className="action-btn bg-white hover:bg-white border-[#F2F2F2] !size-12 [&_svg]:!size-6"
         >
-          <Pencil aria-hidden="true" />
+          <PencilSimple weight="regular" className="group-hover/button:hidden" aria-hidden="true" />
+          <PencilSimple weight="fill" className="hidden group-hover/button:block" aria-hidden="true" />
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -179,7 +181,7 @@ export function EditTripDialog({ trip }: { trip: Trip }) {
             Cancel
           </Button>
           <Button type="submit" form="edit-trip-form">
-            <Pencil aria-hidden="true" />
+            <PencilSimple aria-hidden="true" />
             Save changes
           </Button>
         </DialogFooter>
@@ -199,8 +201,10 @@ export function DeleteTripDialog({ trip }: { trip: Trip }) {
           variant="ghost"
           size="icon"
           aria-label={`Delete ${trip.title}`}
+          className="action-btn bg-[#FEE5E2] hover:bg-[#FEE5E2] border-[#FEDCD8] !size-12 [&_svg]:!size-6"
         >
-          <Trash2 aria-hidden="true" />
+          <Trash weight="regular" className="group-hover/button:hidden" aria-hidden="true" />
+          <Trash weight="fill" className="hidden group-hover/button:block" aria-hidden="true" />
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -220,7 +224,7 @@ export function DeleteTripDialog({ trip }: { trip: Trip }) {
           <form action={deleteTripAction}>
             <input type="hidden" name="tripId" value={trip.id} />
             <Button type="submit" variant="destructive">
-              <Trash2 aria-hidden="true" />
+              <Trash aria-hidden="true" />
               Delete trip
             </Button>
           </form>

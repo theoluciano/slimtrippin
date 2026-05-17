@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarIcon } from "lucide-react"
+import { CalendarBlank } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
@@ -63,7 +63,7 @@ export function DateTimePicker({ name, id, defaultValue }: DateTimePickerProps) 
             variant="outline"
             className={cn("w-full justify-start gap-2 font-normal", !selectedDate && "text-muted-foreground")}
           >
-            <CalendarIcon className="size-4 shrink-0" aria-hidden="true" />
+            <CalendarBlank className="size-4 shrink-0" aria-hidden="true" />
             <span>{triggerLabel}</span>
           </Button>
         </PopoverTrigger>

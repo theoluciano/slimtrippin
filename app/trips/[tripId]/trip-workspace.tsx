@@ -3,11 +3,10 @@
 import {
   ArrowLeft,
   CalendarPlus,
-  Clock3,
   MapPin,
-  Save,
-  Trash2,
-} from "lucide-react";
+  FloppyDisk,
+  Trash,
+} from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -92,8 +91,8 @@ export function TripWorkspace({ trip, events }: Props) {
   }
 
   return (
-    <main className="flex h-screen min-h-[720px] flex-col overflow-hidden">
-      <header className="flex min-h-16 items-center justify-between gap-4 border-b bg-background px-5">
+    <main className="flex h-screen min-h-[720px] flex-col overflow-hidden bg-muted">
+      <header className="flex min-h-[72px] items-center justify-between gap-4 bg-muted px-6">
         <div className="flex min-w-0 items-center gap-3">
           <Button asChild variant="ghost" size="icon" aria-label="Back to trips">
             <Link href="/trips">
@@ -115,7 +114,8 @@ export function TripWorkspace({ trip, events }: Props) {
         </div>
       </header>
 
-      <section ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto bg-background">
+      <div className="flex min-h-0 flex-1 flex-col p-4 pt-2">
+      <section ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto rounded-xl bg-card">
         <Agenda
           dates={dates}
           eventsByDate={eventsByDate}
@@ -125,6 +125,7 @@ export function TripWorkspace({ trip, events }: Props) {
           onSelect={openEvent}
         />
       </section>
+      </div>
 
       <CreateEventDialog trip={trip} open={createOpen} onOpenChange={setCreateOpen} />
       {editingEvent ? (
@@ -330,11 +331,11 @@ function EditEventDialog({
             Cancel
           </Button>
           <Button type="button" variant="destructive" onClick={onDelete}>
-            <Trash2 aria-hidden="true" />
+            <Trash aria-hidden="true" />
             Delete
           </Button>
           <Button type="submit" form="edit-event-form">
-            <Save aria-hidden="true" />
+            <FloppyDisk aria-hidden="true" />
             Save
           </Button>
         </DialogFooter>
@@ -372,7 +373,7 @@ function DeleteEventDialog({
             <input type="hidden" name="tripId" value={trip.id} />
             <input type="hidden" name="eventId" value={event.id} />
             <Button type="submit" variant="destructive">
-              <Trash2 aria-hidden="true" />
+              <Trash aria-hidden="true" />
               Delete event
             </Button>
           </form>
