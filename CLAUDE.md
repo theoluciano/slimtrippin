@@ -51,15 +51,11 @@ Next.js 15 App Router with React 19. Pages are Server Components; interactivity 
 - Events are stored as UTC ISO strings; displayed in the trip's timezone
 - Use `utcIsoToDatetimeLocal()` / `datetimeLocalToUtcIso()` for all conversions — do not do ad-hoc Date math
 
-**Timeline layout (`lib/timeline/lanes.ts`):**
-- Assigns overlapping events to parallel lanes for side-by-side rendering
-- Called in the trip workspace to compute how many columns concurrent events need
-
 ## Styling
 
 - Tailwind CSS 4 with CSS custom properties defined in `app/globals.css`
 - UI primitives from shadcn/ui (radix-nova style) in `components/ui/`
-- Icons from Lucide React
+- Icons from Phosphor Icons (`@phosphor-icons/react`)
 - Never use inline `style` props — always use Tailwind classes or named CSS classes. Inline styles override pseudo-class rules (`:active`, `:hover`) and break interactive states.
 - `--font-special-gothic` CSS variable is available for the `Special Gothic Expanded One` wordmark font
 
@@ -68,6 +64,7 @@ Next.js 15 App Router with React 19. Pages are Server Components; interactivity 
 - `lib/types.ts` — all database types
 - `lib/data/trips.ts` — all CRUD operations
 - `lib/timezone/datetime.ts` — timezone conversion utilities
-- `lib/timeline/lanes.ts` — lane-assignment algorithm for overlapping events
+- `lib/supabase/auth.ts` — shared `requireUser()` helper for Server Components and Actions
+- `lib/form.ts` — shared `requiredString()` / `optionalString()` form helpers
 - `app/trips/[tripId]/trip-workspace.tsx` — main workspace UI (large client component)
 - `app/globals.css` — CSS variables, design tokens, component-level CSS classes

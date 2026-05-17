@@ -3,18 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createTrip, deleteTrip, updateTrip } from "@/lib/data/trips";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/auth";
+import { requiredString } from "@/lib/form";
 
 export async function createTripAction(formData: FormData) {
-  if (!isSupabaseConfigured()) redirect("/login");
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireUser();
 
   const title = requiredString(formData, "title");
   const startDate = requiredString(formData, "startDate");
@@ -34,14 +27,7 @@ export async function createTripAction(formData: FormData) {
 }
 
 export async function updateTripAction(formData: FormData) {
-  if (!isSupabaseConfigured()) redirect("/login");
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireUser();
 
   const tripId = requiredString(formData, "tripId");
   const title = requiredString(formData, "title");
@@ -54,23 +40,8 @@ export async function updateTripAction(formData: FormData) {
 }
 
 export async function deleteTripAction(formData: FormData) {
-  if (!isSupabaseConfigured()) redirect("/login");
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireUser();
 
   await deleteTrip(supabase, user.id, requiredString(formData, "tripId"));
   revalidatePath("/trips");
-}
-
-function requiredString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  if (typeof value !== "string" || value.trim() === "") {
-    throw new Error(`${key} is required.`);
-  }
-  return value.trim();
 }

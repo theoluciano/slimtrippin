@@ -76,12 +76,10 @@ pnpm test:e2e   # E2E tests (Playwright)
 ├── lib/
 │   ├── data/             # Supabase CRUD helpers
 │   ├── supabase/         # Server and browser Supabase clients
-│   ├── timeline/         # Event lane assignment algorithm
 │   ├── timezone/         # Timezone-aware datetime utilities
 │   └── types.ts          # Shared TypeScript types
 ├── supabase/migrations/  # SQL migrations
-├── tests/                # Unit and E2E tests
-└── legacy-ios/           # Archived SwiftUI prototype
+└── tests/                # Unit and E2E tests
 ```
 
 ## Authentication

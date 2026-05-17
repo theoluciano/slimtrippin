@@ -1,22 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import {
   createEvent,
   deleteEvent,
   updateEvent,
 } from "@/lib/data/trips";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/auth";
+import { requiredString, optionalString } from "@/lib/form";
 import { EVENT_TYPES, type EventType } from "@/lib/types";
 
 export async function createEventAction(formData: FormData) {
-  const { supabase, userId } = await requireUser();
+  const { supabase, user } = await requireUser();
   const tripId = requiredString(formData, "tripId");
 
   await createEvent(supabase, {
-    ownerId: userId,
+    ownerId: user.id,
     tripId,
     title: requiredString(formData, "title"),
     type: parseEventType(requiredString(formData, "type")),
@@ -31,10 +30,10 @@ export async function createEventAction(formData: FormData) {
 }
 
 export async function updateEventAction(formData: FormData) {
-  const { supabase, userId } = await requireUser();
+  const { supabase, user } = await requireUser();
   const tripId = requiredString(formData, "tripId");
 
-  await updateEvent(supabase, userId, {
+  await updateEvent(supabase, user.id, {
     eventId: requiredString(formData, "eventId"),
     title: requiredString(formData, "title"),
     type: parseEventType(requiredString(formData, "type")),
@@ -49,24 +48,11 @@ export async function updateEventAction(formData: FormData) {
 }
 
 export async function deleteEventAction(formData: FormData) {
-  const { supabase, userId } = await requireUser();
+  const { supabase, user } = await requireUser();
   const tripId = requiredString(formData, "tripId");
 
-  await deleteEvent(supabase, userId, requiredString(formData, "eventId"));
+  await deleteEvent(supabase, user.id, requiredString(formData, "eventId"));
   revalidatePath(`/trips/${tripId}`);
-}
-
-async function requireUser() {
-  if (!isSupabaseConfigured()) redirect("/login");
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
-  return { supabase, userId: user.id };
 }
 
 function parseEventType(value: string): EventType {
@@ -75,17 +61,4 @@ function parseEventType(value: string): EventType {
   }
 
   return "other";
-}
-
-function requiredString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  if (typeof value !== "string" || value.trim() === "") {
-    throw new Error(`${key} is required.`);
-  }
-  return value.trim();
-}
-
-function optionalString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
 }

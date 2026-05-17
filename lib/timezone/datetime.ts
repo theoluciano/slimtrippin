@@ -105,11 +105,6 @@ export function dateKeyForIso(iso: string, timeZone: string) {
   return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}`;
 }
 
-export function minutesIntoDay(iso: string, timeZone: string) {
-  const parts = getZonedParts(new Date(iso), timeZone);
-  return parts.hour * 60 + parts.minute;
-}
-
 export function eachDate(startDate: string, endDate: string) {
   const dates: string[] = [];
   const current = new Date(`${startDate}T00:00:00.000Z`);

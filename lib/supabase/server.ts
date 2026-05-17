@@ -3,6 +3,13 @@ import { createServerClient } from "@supabase/ssr";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 import type { Database } from "@/lib/types";
 
+type CookieStore = Awaited<ReturnType<typeof cookies>>;
+export type CookieToSet = {
+  name: string;
+  value: string;
+  options?: Parameters<CookieStore["set"]>[2];
+};
+
 export async function createClient() {
   const { url, anonKey } = getSupabaseConfig();
 
@@ -11,11 +18,6 @@ export async function createClient() {
   }
 
   const cookieStore = await cookies();
-  type CookieToSet = {
-    name: string;
-    value: string;
-    options?: Parameters<typeof cookieStore.set>[2];
-  };
 
   return createServerClient<Database>(url, anonKey, {
     cookies: {

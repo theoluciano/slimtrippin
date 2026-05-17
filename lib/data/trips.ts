@@ -187,7 +187,7 @@ export async function deleteEvent(
   if (error) throw error;
 }
 
-export function eventInputToInsert(
+function eventInputToInsert(
   input: CreateEventInput,
 ): Database["public"]["Tables"]["events"]["Insert"] {
   return {

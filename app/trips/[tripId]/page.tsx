@@ -1,7 +1,6 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getEvents, getTrip } from "@/lib/data/trips";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/auth";
 import { TripWorkspace } from "@/app/trips/[tripId]/trip-workspace";
 
 export default async function TripPage({
@@ -9,15 +8,8 @@ export default async function TripPage({
 }: {
   params: Promise<{ tripId: string }>;
 }) {
-  if (!isSupabaseConfigured()) redirect("/login");
-
+  const { supabase, user } = await requireUser();
   const { tripId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
 
   try {
     const [trip, events] = await Promise.all([

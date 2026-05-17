@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Database } from "@/lib/types";
+import type { CookieToSet } from "@/lib/supabase/server";
 
 export async function middleware(request: NextRequest) {
   if (!isSupabaseConfigured()) {
@@ -11,11 +12,6 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
-  type CookieToSet = {
-    name: string;
-    value: string;
-    options?: Parameters<typeof response.cookies.set>[2];
-  };
   const { url, anonKey } = getSupabaseConfig();
 
   const supabase = createServerClient<Database>(url!, anonKey!, {
