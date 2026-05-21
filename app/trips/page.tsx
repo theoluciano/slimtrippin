@@ -8,6 +8,7 @@ import {
 } from "@/app/trips/trip-dialogs";
 import { getTrips } from "@/lib/data/trips";
 import { requireUser } from "@/lib/supabase/auth";
+import { formatTripDate } from "@/lib/timezone/datetime";
 
 export default async function TripsPage() {
   const { supabase, user } = await requireUser();
@@ -15,7 +16,7 @@ export default async function TripsPage() {
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <main className="flex min-h-screen flex-col bg-muted">
+    <main className="flex h-screen flex-col bg-muted">
       <header className="bg-muted">
         <div className="mx-auto flex w-full max-w-6xl items-end justify-between px-6 pb-2 pt-6">
           <span className="wordmark text-[20px] leading-none text-brand">
@@ -28,8 +29,8 @@ export default async function TripsPage() {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 pb-6 pt-4">
-        <section className="trip-section flex-1 border border-border bg-white p-5">
+      <div className="mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col px-6 pb-6 pt-4">
+        <section className="trip-section min-h-0 flex-1 overflow-y-auto border border-border bg-white p-5">
           <div className="grid gap-3">
             {trips.length === 0 ? (
               <div className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">
@@ -48,7 +49,7 @@ export default async function TripsPage() {
                     <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <CalendarDots className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        {trip.start_date} to {trip.end_date}
+                        {formatTripDate(trip.start_date)} – {formatTripDate(trip.end_date)}
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />

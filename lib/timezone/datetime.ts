@@ -82,6 +82,16 @@ export function addHoursToDatetimeLocal(value: string, hours: number) {
   return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
 }
 
+export function formatTripDate(date: string) {
+  const utcNoon = new Date(`${date}T12:00:00.000Z`);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(utcNoon);
+}
+
 export function formatDateLabel(date: string, timeZone: string) {
   const utcNoon = new Date(`${date}T12:00:00.000Z`);
   return new Intl.DateTimeFormat("en-US", {

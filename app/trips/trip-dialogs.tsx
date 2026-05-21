@@ -16,7 +16,171 @@ import {
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Trip } from "@/lib/types";
+
+const TIMEZONE_GROUPS: { label: string; timezones: string[] }[] = [
+  {
+    label: "Americas",
+    timezones: [
+      "America/New_York",
+      "America/Chicago",
+      "America/Denver",
+      "America/Los_Angeles",
+      "America/Anchorage",
+      "Pacific/Honolulu",
+      "America/Toronto",
+      "America/Vancouver",
+      "America/Mexico_City",
+      "America/Bogota",
+      "America/Lima",
+      "America/Santiago",
+      "America/Sao_Paulo",
+      "America/Argentina/Buenos_Aires",
+    ],
+  },
+  {
+    label: "Europe",
+    timezones: [
+      "Europe/London",
+      "Europe/Lisbon",
+      "Europe/Dublin",
+      "Europe/Paris",
+      "Europe/Berlin",
+      "Europe/Rome",
+      "Europe/Madrid",
+      "Europe/Amsterdam",
+      "Europe/Brussels",
+      "Europe/Vienna",
+      "Europe/Zurich",
+      "Europe/Stockholm",
+      "Europe/Oslo",
+      "Europe/Copenhagen",
+      "Europe/Helsinki",
+      "Europe/Warsaw",
+      "Europe/Prague",
+      "Europe/Budapest",
+      "Europe/Bucharest",
+      "Europe/Athens",
+      "Europe/Istanbul",
+      "Europe/Moscow",
+    ],
+  },
+  {
+    label: "Africa",
+    timezones: [
+      "Africa/Cairo",
+      "Africa/Johannesburg",
+      "Africa/Lagos",
+      "Africa/Nairobi",
+      "Africa/Casablanca",
+    ],
+  },
+  {
+    label: "Middle East",
+    timezones: [
+      "Asia/Dubai",
+      "Asia/Riyadh",
+      "Asia/Kuwait",
+      "Asia/Qatar",
+      "Asia/Bahrain",
+      "Asia/Tehran",
+      "Asia/Jerusalem",
+      "Asia/Beirut",
+      "Asia/Amman",
+      "Asia/Baghdad",
+    ],
+  },
+  {
+    label: "Asia",
+    timezones: [
+      "Asia/Kolkata",
+      "Asia/Karachi",
+      "Asia/Dhaka",
+      "Asia/Colombo",
+      "Asia/Kathmandu",
+      "Asia/Tashkent",
+      "Asia/Almaty",
+      "Asia/Bangkok",
+      "Asia/Ho_Chi_Minh",
+      "Asia/Jakarta",
+      "Asia/Singapore",
+      "Asia/Kuala_Lumpur",
+      "Asia/Manila",
+      "Asia/Shanghai",
+      "Asia/Hong_Kong",
+      "Asia/Taipei",
+      "Asia/Seoul",
+      "Asia/Tokyo",
+    ],
+  },
+  {
+    label: "Oceania",
+    timezones: [
+      "Australia/Perth",
+      "Australia/Darwin",
+      "Australia/Adelaide",
+      "Australia/Brisbane",
+      "Australia/Sydney",
+      "Australia/Melbourne",
+      "Pacific/Auckland",
+      "Pacific/Fiji",
+      "Pacific/Guam",
+    ],
+  },
+];
+
+function TimezoneSelect({
+  id,
+  name,
+  defaultValue,
+}: {
+  id: string;
+  name: string;
+  defaultValue: string;
+}) {
+  const [value, setValue] = useState(defaultValue);
+
+  const isKnown = TIMEZONE_GROUPS.some((g) => g.timezones.includes(defaultValue));
+  const displayValue = isKnown ? defaultValue : defaultValue;
+
+  return (
+    <>
+      <input type="hidden" name={name} value={value} />
+      <Select value={value} onValueChange={setValue}>
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue>{displayValue.replace(/_/g, " ")}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {!isKnown && (
+            <SelectGroup>
+              <SelectLabel>Current</SelectLabel>
+              <SelectItem value={defaultValue}>{defaultValue.replace(/_/g, " ")}</SelectItem>
+            </SelectGroup>
+          )}
+          {TIMEZONE_GROUPS.map((group) => (
+            <SelectGroup key={group.label}>
+              <SelectLabel>{group.label}</SelectLabel>
+              {group.timezones.map((tz) => (
+                <SelectItem key={tz} value={tz}>
+                  {tz.replace(/_/g, " ")}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
+  );
+}
 
 export function CreateTripDialog({ today }: { today: string }) {
   const [open, setOpen] = useState(false);
@@ -56,13 +220,7 @@ export function CreateTripDialog({ today }: { today: string }) {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="timezone">Timezone</Label>
-            <Input
-              id="timezone"
-              name="timezone"
-              defaultValue={timezone}
-              placeholder="Europe/Lisbon"
-              required
-            />
+            <TimezoneSelect id="timezone" name="timezone" defaultValue={timezone} />
           </div>
         </form>
         <DialogFooter>
@@ -168,12 +326,7 @@ export function EditTripDialog({ trip }: { trip: Trip }) {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="edit-timezone">Timezone</Label>
-            <Input
-              id="edit-timezone"
-              name="timezone"
-              defaultValue={trip.timezone}
-              required
-            />
+            <TimezoneSelect id="edit-timezone" name="timezone" defaultValue={trip.timezone} />
           </div>
         </form>
         <DialogFooter>

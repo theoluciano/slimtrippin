@@ -42,6 +42,7 @@ import {
   eachDate,
   formatDateLabel,
   formatTimeLabel,
+  formatTripDate,
   utcIsoToDatetimeLocal,
 } from "@/lib/timezone/datetime";
 import { EVENT_TYPES, type Trip, type TripEvent } from "@/lib/types";
@@ -92,30 +93,32 @@ export function TripWorkspace({ trip, events }: Props) {
 
   return (
     <main className="flex h-screen min-h-[720px] flex-col overflow-hidden bg-muted">
-      <header className="flex min-h-[72px] items-center justify-between gap-4 bg-muted px-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <Button asChild variant="ghost" size="icon" aria-label="Back to trips">
-            <Link href="/trips">
-              <ArrowLeft aria-hidden="true" />
-            </Link>
-          </Button>
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold">{trip.title}</h1>
-            <p className="truncate text-sm text-muted-foreground">
-              {trip.start_date} to {trip.end_date} · {trip.timezone}
-            </p>
+      <header className="bg-muted">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 pb-2 pt-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <Button asChild variant="ghost" size="icon" aria-label="Back to trips">
+              <Link href="/trips">
+                <ArrowLeft aria-hidden="true" />
+              </Link>
+            </Button>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-semibold">{trip.title}</h1>
+              <p className="truncate text-sm text-muted-foreground">
+                {formatTripDate(trip.start_date)} – {formatTripDate(trip.end_date)} · {trip.timezone}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button type="button" onClick={() => setCreateOpen(true)}>
-            <CalendarPlus aria-hidden="true" />
-            Add event
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button type="button" onClick={() => setCreateOpen(true)}>
+              <CalendarPlus aria-hidden="true" />
+              Add event
+            </Button>
+          </div>
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col p-4 pt-2">
-      <section ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto rounded-xl bg-card">
+      <div className="mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col px-6 pb-6 pt-4">
+      <section ref={scrollRef} className="trip-section min-h-0 flex-1 overflow-y-auto border border-border bg-white p-5">
         <Agenda
           dates={dates}
           eventsByDate={eventsByDate}
@@ -172,7 +175,7 @@ function Agenda({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
       {dates.map((date) => {
         const dayEvents = eventsByDate.get(date) ?? [];
 
@@ -180,7 +183,6 @@ function Agenda({
           <section key={date} className="grid gap-4 border-b pb-5 md:grid-cols-[120px_1fr]">
             <div className="md:sticky md:top-4 md:h-fit">
               <p className="font-semibold">{formatDateLabel(date, timezone)}</p>
-              <p className="text-sm text-muted-foreground">{date}</p>
             </div>
             {dayEvents.length > 0 ? (
               <div className="grid gap-3">
