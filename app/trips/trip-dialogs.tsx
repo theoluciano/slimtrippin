@@ -284,7 +284,7 @@ export function EditTripDialog({ trip }: { trip: Trip }) {
           variant="ghost"
           size="icon"
           aria-label={`Edit ${trip.title}`}
-          className="action-btn bg-card hover:bg-card border-border !size-12 [&_svg]:!size-6"
+          className="action-btn bg-card hover:bg-card border-border !size-12 [&_svg]:!size-6 cursor-pointer"
         >
           <PencilSimple weight="regular" className="group-hover/button:hidden" aria-hidden="true" />
           <PencilSimple weight="fill" className="hidden group-hover/button:block" aria-hidden="true" />
@@ -354,7 +354,7 @@ export function DeleteTripDialog({ trip }: { trip: Trip }) {
           variant="ghost"
           size="icon"
           aria-label={`Delete ${trip.title}`}
-          className="action-btn bg-destructive-soft hover:bg-destructive-soft border-destructive-soft-border !size-12 [&_svg]:!size-6"
+          className="action-btn bg-destructive-soft hover:bg-destructive-soft border-destructive-soft-border !size-12 [&_svg]:!size-6 cursor-pointer"
         >
           <Trash weight="regular" className="group-hover/button:hidden" aria-hidden="true" />
           <Trash weight="fill" className="hidden group-hover/button:block" aria-hidden="true" />
