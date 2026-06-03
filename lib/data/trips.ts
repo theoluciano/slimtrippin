@@ -26,7 +26,6 @@ export type CreateEventInput = {
   type: EventType;
   startAt: string;
   endAt: string;
-  locationName?: string | null;
   address?: string | null;
   notes?: string | null;
 };
@@ -160,7 +159,6 @@ export async function updateEvent(
       type: input.type,
       start_at: input.startAt,
       end_at: input.endAt,
-      location_name: emptyToNull(input.locationName),
       address: emptyToNull(input.address),
       notes: emptyToNull(input.notes),
     })
@@ -197,7 +195,7 @@ function eventInputToInsert(
     type: input.type,
     start_at: input.startAt,
     end_at: input.endAt,
-    location_name: emptyToNull(input.locationName),
+    location_name: null,
     address: emptyToNull(input.address),
     notes: emptyToNull(input.notes),
   };

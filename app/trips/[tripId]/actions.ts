@@ -21,7 +21,6 @@ export async function createEventAction(formData: FormData) {
     type: parseEventType(requiredString(formData, "type")),
     startAt: requiredString(formData, "startAt"),
     endAt: requiredString(formData, "endAt"),
-    locationName: optionalString(formData, "locationName"),
     address: optionalString(formData, "address"),
     notes: optionalString(formData, "notes"),
   });
@@ -39,7 +38,6 @@ export async function updateEventAction(formData: FormData) {
     type: parseEventType(requiredString(formData, "type")),
     startAt: requiredString(formData, "startAt"),
     endAt: requiredString(formData, "endAt"),
-    locationName: optionalString(formData, "locationName"),
     address: optionalString(formData, "address"),
     notes: optionalString(formData, "notes"),
   });
