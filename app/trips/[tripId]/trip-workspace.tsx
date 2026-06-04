@@ -8,10 +8,16 @@ import {
   FloppyDisk,
   PencilSimple,
   Trash,
+  AirplaneTilt,
+  Bed,
+  ForkKnife,
+  Mountains,
+  CheckSquare,
+  DotsThreeOutline,
 } from "@phosphor-icons/react";
+import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   createEventAction,
   deleteEventAction,
@@ -230,6 +236,8 @@ function Agenda({
                   const isPast = Date.parse(event.end_at) < Date.now();
                   const isNext = event.id === nextEventId;
                   const nextUpLabel = isNext ? formatNextUpLabel(event.start_at, now) : null;
+                  const TypeIcon = EVENT_TYPE_ICONS[event.type];
+                  const typeColors = EVENT_TYPE_COLORS[event.type] ?? "bg-secondary text-secondary-foreground";
 
                   return (
                     <button
@@ -238,17 +246,16 @@ function Agenda({
                       type="button"
                       onClick={() => onSelect(event.id)}
                       className={[
-                        "event-card grid h-28 grid-rows-[auto_auto_1fr] gap-1 border p-3 text-left text-sm",
+                        "event-card relative overflow-hidden grid h-28 grid-rows-[auto_auto_1fr] gap-1 border p-3 text-left text-sm",
                         isNext ? "border-primary" : "border-border",
                         isPast ? "is-past opacity-45" : "",
                       ].join(" ")}
                     >
-                      <span className="flex items-center justify-between gap-3">
-                        <span className="truncate font-medium">{event.title}</span>
-                        <Badge variant="secondary" className="shrink-0">
-                          {titleCase(event.type)}
-                        </Badge>
+                      <span className={`absolute -right-px -top-px flex items-center gap-1.5 rounded-bl-[16px] rounded-tr-[20px] px-5 py-2 text-xs font-semibold shadow-[inset_-1px_2px_6px_rgba(0,0,0,0.10)] ${typeColors}`}>
+                        {TypeIcon && <TypeIcon weight="duotone" className="size-3.5 shrink-0" aria-hidden="true" />}
+                        {titleCase(event.type)}
                       </span>
+                      <span className="truncate pr-24 text-base font-medium">{event.title}</span>
                       <span className="truncate text-xs opacity-80">
                         {formatTimeLabel(event.start_at, timezone)} to{" "}
                         {formatTimeLabel(event.end_at, timezone)}
@@ -439,18 +446,20 @@ function EditEventContent({
           defaultNotes={event.notes ?? ""}
         />
       </form>
-      <SheetFooter>
+      <SheetFooter className="sm:justify-between">
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="button" variant="destructive" onClick={onDelete}>
-          <Trash aria-hidden="true" />
-          Delete
-        </Button>
-        <Button type="submit" form="edit-event-form">
-          <FloppyDisk aria-hidden="true" />
-          Save
-        </Button>
+        <div className="flex gap-2">
+          <Button type="button" variant="destructive" onClick={onDelete}>
+            <Trash aria-hidden="true" />
+            Delete
+          </Button>
+          <Button type="submit" form="edit-event-form">
+            <FloppyDisk aria-hidden="true" />
+            Save
+          </Button>
+        </div>
       </SheetFooter>
     </>
   );
@@ -497,11 +506,39 @@ function DeleteEventDialog({
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
+type GeocodingContext = {
+  id: string;
+  text: string;
+  short_code?: string;
+};
+
 type GeocodingFeature = {
   id: string;
   place_name: string;
   text: string;
+  address?: string;
+  context?: GeocodingContext[];
 };
+
+function formatSuggestionContext(f: GeocodingFeature): string {
+  const ctx = f.context ?? [];
+  const city = ctx.find((c) => c.id.startsWith("place."))?.text ?? "";
+  const regionRaw = ctx.find((c) => c.id.startsWith("region."))?.short_code ?? "";
+  const state = regionRaw.replace(/^[A-Z]{2}-/, "");
+  const country = ctx.find((c) => c.id.startsWith("country."))?.text ?? "";
+  return [city, state, country].filter(Boolean).join(", ");
+}
+
+function formatAddress(f: GeocodingFeature): string {
+  const street = f.address ? `${f.address} ${f.text}` : f.text;
+  const ctx = f.context ?? [];
+  const city = ctx.find((c) => c.id.startsWith("place."))?.text ?? "";
+  const regionRaw = ctx.find((c) => c.id.startsWith("region."))?.short_code ?? "";
+  const state = regionRaw.replace(/^[A-Z]{2}-/, "");
+  const zip = ctx.find((c) => c.id.startsWith("postcode."))?.text ?? "";
+  const parts = [street, [city, [state, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")].filter(Boolean);
+  return parts.join(", ");
+}
 
 function AddressSearchBox({
   defaultValue = "",
@@ -583,7 +620,7 @@ function AddressSearchBox({
       setActiveIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === "Enter" && activeIndex >= 0) {
       e.preventDefault();
-      select(suggestions[activeIndex].place_name);
+      select(formatAddress(suggestions[activeIndex]));
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -591,41 +628,13 @@ function AddressSearchBox({
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (inputWrapperRef.current && !inputWrapperRef.current.contains(e.target as Node)) {
+      if (!inputWrapperRef.current?.contains(e.target as Node)) {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
   }, []);
-
-  const dropdown = open ? (
-    <div
-      style={dropdownStyle}
-      className="z-50 overflow-hidden rounded-lg border border-border bg-popover shadow-md"
-    >
-      {suggestions.map((s, i) => (
-        <button
-          key={s.id}
-          type="button"
-          className={cn(
-            "w-full cursor-pointer px-3 py-2 text-left text-sm",
-            i === activeIndex ? "bg-muted" : "hover:bg-muted"
-          )}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            select(s.place_name);
-          }}
-        >
-          <div className="truncate font-medium">{s.text}</div>
-          <div className="truncate text-xs text-muted-foreground">{s.place_name}</div>
-        </button>
-      ))}
-      <div className="border-t border-border px-3 py-1.5">
-        <span className="text-xs text-muted-foreground">Powered by Mapbox</span>
-      </div>
-    </div>
-  ) : null;
 
   return (
     <div ref={inputWrapperRef}>
@@ -643,7 +652,31 @@ function AddressSearchBox({
           autoComplete="off"
         />
       </div>
-      {typeof document !== "undefined" && createPortal(dropdown, document.body)}
+      {open && (
+        <div
+          style={dropdownStyle}
+          className="z-50 overflow-hidden rounded-lg border border-border bg-popover shadow-md"
+        >
+          {suggestions.map((s, i) => (
+            <button
+              key={`${s.id}-${i}`}
+              type="button"
+              className={cn(
+                "w-full cursor-pointer px-3 py-2 text-left text-sm",
+                i === activeIndex ? "bg-muted" : "hover:bg-muted"
+              )}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => select(formatAddress(s))}
+            >
+              <div className="truncate font-medium">{s.address ? `${s.address} ${s.text}` : s.text}</div>
+              <div className="truncate text-xs text-muted-foreground">{formatSuggestionContext(s)}</div>
+            </button>
+          ))}
+          <div className="border-t border-border px-3 py-1.5">
+            <span className="text-xs text-muted-foreground">Powered by Mapbox</span>
+          </div>
+        </div>
+      )}
       <input type="hidden" name="address" value={query} />
     </div>
   );
@@ -773,6 +806,24 @@ function formatNextUpLabel(startAt: string, now: number): string | null {
 function titleCase(value: string) {
   return value.slice(0, 1).toUpperCase() + value.slice(1);
 }
+
+const EVENT_TYPE_ICONS: Record<string, Icon> = {
+  transit: AirplaneTilt,
+  lodging: Bed,
+  food: ForkKnife,
+  activity: Mountains,
+  task: CheckSquare,
+  other: DotsThreeOutline,
+};
+
+const EVENT_TYPE_COLORS: Record<string, string> = {
+  transit:  "bg-[#D6E0D8] text-[#2D4032]", // sage
+  lodging:  "bg-[#E8DCCC] text-[#3D2E1A]", // sand
+  food:     "bg-[#D8E0D0] text-[#2A3622]", // moss
+  activity: "bg-[#DDD5C8] text-[#3A2E1E]", // clay
+  task:     "bg-[#D4D8D0] text-[#2A2E28]", // stone
+  other:    "bg-[#DDD0CC] text-[#3A2622]", // terracotta
+};
 
 function formatTimeOnly(iso: string, timezone: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
