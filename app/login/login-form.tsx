@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/browser";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
+// In development the link is printed to the dev-server terminal instead of
+// being emailed. Next.js inlines NODE_ENV, so this branch is dropped in prod.
+const useTerminalLink = process.env.NODE_ENV === "development";
+
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -21,6 +25,20 @@ export function LoginForm() {
 
     startTransition(async () => {
       try {
+        if (useTerminalLink) {
+          const response = await fetch("/auth/dev-link", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error);
+
+          setMessage("Magic link printed to the dev-server terminal.");
+          return;
+        }
+
         const supabase = createClient();
         const { siteUrl } = getSupabaseConfig();
         const { error: authError } = await supabase.auth.signInWithOtp({
