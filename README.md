@@ -39,11 +39,18 @@ A desktop-first trip timeline planner. Create trips, add events (transit, lodgin
    NEXT_PUBLIC_SUPABASE_ANON_KEY=
    ```
 
-3. Apply database migrations to your Supabase project:
+3. Link the Supabase CLI to your project and apply migrations. The CLI ships as a
+   devDependency, so there is nothing to install globally — but `login` and `link`
+   are one-time, per-machine steps:
 
    ```bash
-   supabase db push
+   pnpm db login                              # opens a browser to authorize
+   pnpm db link --project-ref <your-ref>      # the subdomain of your Supabase URL
+   pnpm db:push                               # apply supabase/migrations/
    ```
+
+   `pnpm db:status` lists which migrations the remote project has applied. Any
+   `supabase` subcommand is reachable through `pnpm db <subcommand>`.
 
 4. Start the dev server:
 
@@ -92,5 +99,14 @@ SlimTrippin uses Supabase magic link (passwordless email) authentication. All da
 |----------|-----------------------------------------------------------------------------|
 | `trips`  | `id`, `owner_id`, `title`, `start_date`, `end_date`, `timezone`            |
 | `events` | `id`, `owner_id`, `trip_id`, `title`, `type`, `start_at`, `end_at`, `location`, `notes` |
+| `event_attachments` | `id`, `owner_id`, `event_id`, `storage_path`, `file_name`, `mime_type`, `size_bytes` |
 
 Event types: `transit`, `lodging`, `food`, `activity`, `task`, `other`.
+
+## Attachments
+
+Events can hold files — PDFs, images, and Office documents up to 10 MB each. File
+bytes go to the private `event-attachments` Supabase Storage bucket (created by
+migration `0003`); the row in `event_attachments` holds the metadata. Because the
+bucket is private, downloads are served through `/attachments/[attachmentId]`,
+which verifies the session and redirects to a short-lived signed URL.

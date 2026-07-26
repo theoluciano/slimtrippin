@@ -41,6 +41,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,15 +68,22 @@ import {
   formatTripDate,
   utcIsoToDatetimeLocal,
 } from "@/lib/timezone/datetime";
+import { EventAttachments } from "@/app/trips/[tripId]/event-attachments";
 import { cn } from "@/lib/utils";
-import { EVENT_TYPES, type Trip, type TripEvent } from "@/lib/types";
+import {
+  EVENT_TYPES,
+  type EventAttachment,
+  type Trip,
+  type TripEvent,
+} from "@/lib/types";
 
 type Props = {
   trip: Trip;
   events: TripEvent[];
+  attachments: EventAttachment[];
 };
 
-export function TripWorkspace({ trip, events }: Props) {
+export function TripWorkspace({ trip, events, attachments }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -91,6 +103,10 @@ export function TripWorkspace({ trip, events }: Props) {
   const eventsByDate = useMemo(
     () => groupEventsByDate(events, trip.timezone),
     [events, trip.timezone],
+  );
+  const attachmentsByEvent = useMemo(
+    () => groupAttachmentsByEvent(attachments),
+    [attachments],
   );
 
   useEffect(() => {
@@ -180,6 +196,7 @@ export function TripWorkspace({ trip, events }: Props) {
             <ViewEventContent
               trip={trip}
               event={sheetEvent}
+              attachments={attachmentsByEvent.get(sheetEvent.id) ?? []}
               onEdit={() => setEditingId(sheetEvent.id)}
             />
           ))}
@@ -340,10 +357,12 @@ function CreateEventDialog({
 function ViewEventContent({
   trip,
   event,
+  attachments,
   onEdit,
 }: {
   trip: Trip;
   event: TripEvent;
+  attachments: EventAttachment[];
   onEdit: () => void;
 }) {
   const hasLocation = !!event.address;
@@ -354,7 +373,7 @@ function ViewEventContent({
         <SheetTitle>{event.title}</SheetTitle>
         <SheetDescription>Event details</SheetDescription>
       </SheetHeader>
-      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 pt-7">
+      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 pb-2 pt-7">
         {/* Group 1: badge, title, time cards, notes */}
         <div className="flex flex-col gap-4">
           <div>
@@ -394,6 +413,12 @@ function ViewEventContent({
             <MapPreview address={event.address} />
           </div>
         )}
+        {/* Group 3: attachments */}
+        <EventAttachments
+          tripId={trip.id}
+          eventId={event.id}
+          attachments={attachments}
+        />
       </div>
       <SheetFooter>
         <Button type="button" onClick={onEdit}>
@@ -549,21 +574,9 @@ function AddressSearchBox({
   const [suggestions, setSuggestions] = useState<GeocodingFeature[]>([]);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const inputWrapperRef = useRef<HTMLDivElement>(null);
-
-  const updateDropdownPosition = useCallback(() => {
-    if (!inputWrapperRef.current) return;
-    const rect = inputWrapperRef.current.getBoundingClientRect();
-    setDropdownStyle({
-      position: "fixed",
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: rect.width,
-    });
-  }, []);
 
   const fetchSuggestions = useCallback(async (value: string) => {
     abortRef.current?.abort();
@@ -582,19 +595,14 @@ function AddressSearchBox({
       const data = await res.json();
       const features: GeocodingFeature[] = data.features ?? [];
       setSuggestions(features);
-      if (features.length > 0) {
-        updateDropdownPosition();
-        setOpen(true);
-      } else {
-        setOpen(false);
-      }
+      setOpen(features.length > 0);
     } catch (e) {
       if ((e as { name?: string }).name !== "AbortError") {
         setSuggestions([]);
         setOpen(false);
       }
     }
-  }, [updateDropdownPosition]);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -626,37 +634,37 @@ function AddressSearchBox({
     }
   };
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (!inputWrapperRef.current?.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", handler);
-    return () => document.removeEventListener("pointerdown", handler);
-  }, []);
-
   return (
-    <div ref={inputWrapperRef}>
-      <div className="relative">
-        <MagnifyingGlass
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
-          aria-hidden
-        />
-        <Input
-          value={query}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder="123 Main St, City"
-          className="pl-8"
-          autoComplete="off"
-        />
-      </div>
-      {open && (
-        <div
-          style={dropdownStyle}
-          className="z-50 overflow-hidden rounded-lg border border-border bg-popover shadow-md"
-        >
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverAnchor asChild>
+        <div ref={inputWrapperRef} className="relative">
+          <MagnifyingGlass
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
+            aria-hidden
+          />
+          <Input
+            value={query}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="123 Main St, City"
+            className="pl-8"
+            autoComplete="off"
+          />
+        </div>
+      </PopoverAnchor>
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        collisionPadding={8}
+        className="w-[var(--radix-popover-trigger-width)] max-h-[var(--radix-popover-content-available-height)] gap-0 overflow-hidden p-0"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          // Clicking back into the input shouldn't dismiss the suggestions.
+          if (inputWrapperRef.current?.contains(e.target as Node)) e.preventDefault();
+        }}
+      >
+        <div className="max-h-64 overflow-y-auto">
           {suggestions.map((s, i) => (
             <button
               key={`${s.id}-${i}`}
@@ -672,13 +680,13 @@ function AddressSearchBox({
               <div className="truncate text-xs text-muted-foreground">{formatSuggestionContext(s)}</div>
             </button>
           ))}
-          <div className="border-t border-border px-3 py-1.5">
-            <span className="text-xs text-muted-foreground">Powered by Mapbox</span>
-          </div>
         </div>
-      )}
+        <div className="border-t border-border px-3 py-1.5">
+          <span className="text-xs text-muted-foreground">Powered by Mapbox</span>
+        </div>
+      </PopoverContent>
       <input type="hidden" name="address" value={query} />
-    </div>
+    </Popover>
   );
 }
 
@@ -778,6 +786,21 @@ function groupEventsByDate(events: TripEvent[], timezone: string) {
     grouped.set(dateKey, [...dayEvents, event].sort(compareEvents));
     return grouped;
   }, new Map<string, TripEvent[]>());
+}
+
+function groupAttachmentsByEvent(attachments: EventAttachment[]) {
+  const map = new Map<string, EventAttachment[]>();
+
+  for (const attachment of attachments) {
+    const existing = map.get(attachment.event_id);
+    if (existing) {
+      existing.push(attachment);
+    } else {
+      map.set(attachment.event_id, [attachment]);
+    }
+  }
+
+  return map;
 }
 
 function compareEvents(a: TripEvent, b: TripEvent) {

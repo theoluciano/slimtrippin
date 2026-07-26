@@ -35,6 +35,17 @@ export type TripEvent = {
   updated_at: string;
 };
 
+export type EventAttachment = {
+  id: string;
+  owner_id: string;
+  event_id: string;
+  storage_path: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -62,6 +73,23 @@ export type Database = {
             columns: ["trip_id"];
             isOneToOne: false;
             referencedRelation: "trips";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      event_attachments: {
+        Row: EventAttachment;
+        Insert: Omit<EventAttachment, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "event_attachments_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
             referencedColumns: ["id"];
           },
         ];

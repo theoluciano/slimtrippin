@@ -11,7 +11,13 @@ pnpm typecheck    # TypeScript type check
 pnpm lint         # ESLint
 pnpm test         # unit tests (Vitest)
 pnpm test:e2e     # E2E tests (Playwright, Chromium only)
+pnpm db:push      # apply supabase/migrations/ to the linked project
+pnpm db:status    # list which migrations the remote has applied
+pnpm db <cmd>     # any other Supabase CLI subcommand
 ```
+
+The Supabase CLI is a devDependency — never `brew install` it or call a global
+`supabase`. Run it through `pnpm db` so everyone stays on the pinned version.
 
 ## Environment
 
@@ -40,12 +46,21 @@ Next.js 15 App Router with React 19. Pages are Server Components; interactivity 
 - `lib/supabase/server.ts` — SSR client (cookies); use in Server Components and Server Actions
 - `lib/supabase/browser.ts` — browser client; use only in `"use client"` components
 - `lib/data/trips.ts` — typed CRUD helpers for `trips` and `events` tables
+- `lib/data/attachments.ts` — CRUD for `event_attachments` plus Storage upload/remove/signed URLs
 - Every query filters by `owner_id` to respect Row-Level Security
 
 **Database schema** (see `lib/types.ts`):
 - `trips`: id, owner_id, title, start_date, end_date, timezone
 - `events`: id, owner_id, trip_id, title, type, start_at, end_at, location_name, address, notes
+- `event_attachments`: id, owner_id, event_id, storage_path, file_name, mime_type, size_bytes
 - Event types: `"transit" | "lodging" | "food" | "activity" | "task" | "other"`
+
+**Attachments (`lib/attachments.ts`):**
+- Bytes live in the private `event-attachments` Supabase Storage bucket; metadata lives in `event_attachments`
+- Object keys are always `{owner_id}/{event_id}/{uuid}-{filename}` — the Storage RLS policies match on that first path segment
+- `lib/attachments.ts` holds the size cap and mime allowlist; migration `0003` duplicates them at the bucket level — change both together
+- The bucket is private, so files are served through `/attachments/[attachmentId]`, which checks the session and redirects to a signed URL
+- Uploads post through a Server Action, so `serverActions.bodySizeLimit` in `next.config.ts` bounds a batch
 
 **Timezone handling (`lib/timezone/datetime.ts`):**
 - Events are stored as UTC ISO strings; displayed in the trip's timezone
