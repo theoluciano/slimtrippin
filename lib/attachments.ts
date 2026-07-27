@@ -95,7 +95,14 @@ type AttachmentCandidate = { name: string; size: number; type: string };
  */
 export function rejectAttachment(file: AttachmentCandidate) {
   if (file.size > MAX_ATTACHMENT_BYTES) {
-    return `"${file.name}" is ${formatFileSize(file.size)}. The limit is ${formatFileSize(MAX_ATTACHMENT_BYTES)}.`;
+    const size = formatFileSize(file.size);
+    const cap = formatFileSize(MAX_ATTACHMENT_BYTES);
+
+    // A file barely over the cap rounds to the cap's own figure, which would
+    // otherwise read as "is 10 MB. The limit is 10 MB."
+    return size === cap
+      ? `"${file.name}" is just over the ${cap} limit.`
+      : `"${file.name}" is ${size}. The limit is ${cap}.`;
   }
 
   if (!isAllowedAttachmentType(file.type)) {
