@@ -10,48 +10,55 @@ export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 /**
  * Ceiling for one multi-file upload. Files post through a Server Action, so the
- * whole batch is a single request body — this must stay under the
- * `serverActions.bodySizeLimit` in next.config.ts.
+ * whole batch is a single request body — `serverActions.bodySizeLimit` in
+ * next.config.ts is derived from this.
  */
 export const MAX_ATTACHMENT_BATCH_BYTES = 24 * 1024 * 1024;
 
-export const ALLOWED_ATTACHMENT_MIME_TYPES = [
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/heic",
-  "image/heif",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "text/plain",
-  "text/csv",
+/**
+ * The one declaration of an accepted file type. The `accept` attribute, the
+ * helper label, and the row icon all derive from this table, so adding a type
+ * is a single edit here plus the bucket in migration 0003.
+ */
+const ATTACHMENT_TYPES = [
+  { mime: "application/pdf", extensions: [".pdf"], kind: "PDFs" },
+  { mime: "image/jpeg", extensions: [".jpg", ".jpeg"], kind: "images" },
+  { mime: "image/png", extensions: [".png"], kind: "images" },
+  { mime: "image/webp", extensions: [".webp"], kind: "images" },
+  { mime: "image/gif", extensions: [".gif"], kind: "images" },
+  { mime: "image/heic", extensions: [".heic"], kind: "images" },
+  { mime: "image/heif", extensions: [".heif"], kind: "images" },
+  { mime: "application/msword", extensions: [".doc"], kind: "documents" },
+  {
+    mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    extensions: [".docx"],
+    kind: "documents",
+  },
+  { mime: "application/vnd.ms-excel", extensions: [".xls"], kind: "documents" },
+  {
+    mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    extensions: [".xlsx"],
+    kind: "documents",
+  },
+  { mime: "application/vnd.ms-powerpoint", extensions: [".ppt"], kind: "documents" },
+  {
+    mime: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    extensions: [".pptx"],
+    kind: "documents",
+  },
+  { mime: "text/plain", extensions: [".txt"], kind: "documents" },
+  { mime: "text/csv", extensions: [".csv"], kind: "documents" },
 ] as const;
+
+export type AttachmentMimeType = (typeof ATTACHMENT_TYPES)[number]["mime"];
+
+export const ALLOWED_ATTACHMENT_MIME_TYPES = ATTACHMENT_TYPES.map((type) => type.mime);
 
 /** `accept` attribute for the file input. Extensions help browsers that report
  * empty or generic mime types for Office files. */
 export const ATTACHMENT_ACCEPT = [
   ...ALLOWED_ATTACHMENT_MIME_TYPES,
-  ".pdf",
-  ".jpg",
-  ".jpeg",
-  ".png",
-  ".webp",
-  ".gif",
-  ".heic",
-  ".doc",
-  ".docx",
-  ".xls",
-  ".xlsx",
-  ".ppt",
-  ".pptx",
-  ".txt",
-  ".csv",
+  ...ATTACHMENT_TYPES.flatMap((type) => type.extensions),
 ].join(",");
 
 /**
@@ -59,29 +66,60 @@ export const ATTACHMENT_ACCEPT = [
  * from the allowlist rather than hand-written so the helper text in the UI
  * cannot advertise a category we no longer accept.
  */
-export const ATTACHMENT_KINDS_LABEL = buildAttachmentKindsLabel();
+export const ATTACHMENT_KINDS_LABEL = new Intl.ListFormat("en", {
+  style: "long",
+  type: "conjunction",
+}).format([...new Set(ATTACHMENT_TYPES.map((type) => type.kind))]);
 
-function buildAttachmentKindsLabel() {
-  const types = ALLOWED_ATTACHMENT_MIME_TYPES as readonly string[];
-  const kinds: string[] = [];
+const ALLOWED_MIME_TYPES = new Set<string>(ALLOWED_ATTACHMENT_MIME_TYPES);
 
-  if (types.includes("application/pdf")) kinds.push("PDFs");
-  if (types.some(isImageAttachment)) kinds.push("images");
-  if (types.some((type) => type !== "application/pdf" && !isImageAttachment(type))) {
-    kinds.push("documents");
-  }
-
-  return new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(
-    kinds,
-  );
-}
-
-export function isAllowedAttachmentType(mimeType: string) {
-  return (ALLOWED_ATTACHMENT_MIME_TYPES as readonly string[]).includes(mimeType);
+export function isAllowedAttachmentType(
+  mimeType: string,
+): mimeType is AttachmentMimeType {
+  return ALLOWED_MIME_TYPES.has(mimeType);
 }
 
 export function isImageAttachment(mimeType: string) {
   return mimeType.startsWith("image/");
+}
+
+/** The `File` fields the rules below look at — so the Server Action and the
+ * browser can both call them without agreeing on a `File` implementation. */
+type AttachmentCandidate = { name: string; size: number; type: string };
+
+/**
+ * The single statement of what we accept, in the wording the user sees. The
+ * client calls it to reject a pick before uploading and the Server Action calls
+ * it again, because the client check is only a courtesy. Returns the message to
+ * show, or null when the file is fine.
+ */
+export function rejectAttachment(file: AttachmentCandidate) {
+  if (file.size > MAX_ATTACHMENT_BYTES) {
+    return `"${file.name}" is ${formatFileSize(file.size)}. The limit is ${formatFileSize(MAX_ATTACHMENT_BYTES)}.`;
+  }
+
+  if (!isAllowedAttachmentType(file.type)) {
+    return `"${file.name}" is not a supported file type.`;
+  }
+
+  return null;
+}
+
+/** Same, for a whole pick: the per-file rules, then the batch ceiling. */
+export function rejectAttachmentBatch(files: readonly AttachmentCandidate[]) {
+  if (!files.length) return "Select at least one file to attach.";
+
+  for (const file of files) {
+    const rejection = rejectAttachment(file);
+    if (rejection) return rejection;
+  }
+
+  const batchBytes = files.reduce((total, file) => total + file.size, 0);
+  if (batchBytes > MAX_ATTACHMENT_BATCH_BYTES) {
+    return `That's ${formatFileSize(batchBytes)} at once. Upload up to ${formatFileSize(MAX_ATTACHMENT_BATCH_BYTES)} per batch.`;
+  }
+
+  return null;
 }
 
 /** Strips directory components and characters that are awkward in storage keys. */

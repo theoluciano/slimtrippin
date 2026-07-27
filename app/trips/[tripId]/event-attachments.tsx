@@ -24,12 +24,13 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   ATTACHMENT_ACCEPT,
   ATTACHMENT_KINDS_LABEL,
-  MAX_ATTACHMENT_BATCH_BYTES,
   MAX_ATTACHMENT_BYTES,
+  type AttachmentMimeType,
   attachmentKindLabel,
   formatFileSize,
   isAllowedAttachmentType,
   isImageAttachment,
+  rejectAttachmentBatch,
 } from "@/lib/attachments";
 import type { EventAttachment } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -50,24 +51,11 @@ export function EventAttachments({ tripId, eventId, attachments }: Props) {
     event.target.value = "";
     if (!files.length) return;
 
-    const rejected = files.find(
-      (file) => file.size > MAX_ATTACHMENT_BYTES || !isAllowedAttachmentType(file.type),
-    );
-
-    if (rejected) {
-      setError(
-        rejected.size > MAX_ATTACHMENT_BYTES
-          ? `"${rejected.name}" is ${formatFileSize(rejected.size)}. The limit is ${formatFileSize(MAX_ATTACHMENT_BYTES)}.`
-          : `"${rejected.name}" is not a supported file type.`,
-      );
-      return;
-    }
-
-    const batchBytes = files.reduce((total, file) => total + file.size, 0);
-    if (batchBytes > MAX_ATTACHMENT_BATCH_BYTES) {
-      setError(
-        `That's ${formatFileSize(batchBytes)} at once. Upload up to ${formatFileSize(MAX_ATTACHMENT_BATCH_BYTES)} per batch.`,
-      );
+    // Same rules the Server Action enforces, run here so the user hears about a
+    // bad pick before the bytes go over the wire.
+    const rejection = rejectAttachmentBatch(files);
+    if (rejection) {
+      setError(rejection);
       return;
     }
 
@@ -201,7 +189,7 @@ function AttachmentRow({
 
   return (
     <li className="group flex items-center gap-3 rounded-xl border border-muted px-3 py-2.5">
-      <AttachmentThumbnail attachment={attachment} href={href} />
+      <AttachmentThumbnail attachment={attachment} />
       <a
         href={href}
         target="_blank"
@@ -232,20 +220,14 @@ function AttachmentRow({
   );
 }
 
-function AttachmentThumbnail({
-  attachment,
-  href,
-}: {
-  attachment: EventAttachment;
-  href: string;
-}) {
+function AttachmentThumbnail({ attachment }: { attachment: EventAttachment }) {
   if (isImageAttachment(attachment.mime_type)) {
     return (
       // Signed-URL redirect behind an auth check — not a candidate for next/image
       // optimization, which would need a stable public origin.
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={href}
+        src={`/attachments/${attachment.id}`}
         alt=""
         className="size-10 shrink-0 rounded-lg border border-muted object-cover"
       />
@@ -261,17 +243,29 @@ function AttachmentThumbnail({
   );
 }
 
+/**
+ * Exhaustive over the allowlist, so adding a type in lib/attachments.ts is a
+ * type error here until it has an icon. Rows stored before a type was dropped
+ * fall back to the generic glyph.
+ */
+const ATTACHMENT_ICONS: Record<AttachmentMimeType, Icon> = {
+  "application/pdf": FilePdf,
+  "image/jpeg": FileImage,
+  "image/png": FileImage,
+  "image/webp": FileImage,
+  "image/gif": FileImage,
+  "image/heic": FileImage,
+  "image/heif": FileImage,
+  "application/msword": FileDoc,
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": FileDoc,
+  "application/vnd.ms-excel": FileXls,
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": FileXls,
+  "application/vnd.ms-powerpoint": FilePpt,
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": FilePpt,
+  "text/plain": FileText,
+  "text/csv": FileCsv,
+};
+
 function iconForMimeType(mimeType: string): Icon {
-  if (mimeType === "application/pdf") return FilePdf;
-  if (mimeType.startsWith("image/")) return FileImage;
-  if (mimeType === "text/csv") return FileCsv;
-  if (mimeType.includes("spreadsheet") || mimeType === "application/vnd.ms-excel") {
-    return FileXls;
-  }
-  if (mimeType.includes("presentation") || mimeType === "application/vnd.ms-powerpoint") {
-    return FilePpt;
-  }
-  if (mimeType.includes("word") || mimeType === "application/msword") return FileDoc;
-  if (mimeType === "text/plain") return FileText;
-  return FileIcon;
+  return isAllowedAttachmentType(mimeType) ? ATTACHMENT_ICONS[mimeType] : FileIcon;
 }

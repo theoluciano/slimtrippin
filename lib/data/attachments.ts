@@ -13,29 +13,24 @@ export async function getAttachmentsForTrip(
   ownerId: string,
   tripId: string,
 ) {
-  const { data: events, error: eventsError } = await supabase
-    .from("events")
-    .select("id")
-    .eq("owner_id", ownerId)
-    .eq("trip_id", tripId);
-
-  if (eventsError) throw eventsError;
-  if (!events.length) return [];
-
+  // The trip filter rides along as an inner join rather than a separate lookup
+  // of the trip's event ids — one round trip, and no unbounded `in (…)` list.
   const { data, error } = await supabase
     .from("event_attachments")
-    .select("*")
+    .select("*, events!inner(trip_id)")
     .eq("owner_id", ownerId)
-    .in(
-      "event_id",
-      events.map((event) => event.id),
-    )
+    .eq("events.trip_id", tripId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return data;
+
+  // The embed is a filter, not data — drop it so callers get plain rows.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return data.map(({ events, ...attachment }) => attachment satisfies EventAttachment);
 }
 
+/** Null when there is no such attachment for this owner; throws on failure, so
+ * callers can tell "gone" apart from "the database is down". */
 export async function getAttachment(
   supabase: AppSupabaseClient,
   ownerId: string,
@@ -46,7 +41,7 @@ export async function getAttachment(
     .select("*")
     .eq("owner_id", ownerId)
     .eq("id", attachmentId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;

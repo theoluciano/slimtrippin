@@ -12,20 +12,16 @@ export default async function TripPage({
   const { supabase, user } = await requireUser();
   const { tripId } = await params;
 
-  // Only a missing trip is a 404. Everything else propagates to the error
-  // boundary — a blanket catch here reports backend failures as "trip not
-  // found", which sends you looking in the wrong place.
-  let trip;
-  try {
-    trip = await getTrip(supabase, user.id, tripId);
-  } catch {
-    notFound();
-  }
-
-  const [events, attachments] = await Promise.all([
+  const [trip, events, attachments] = await Promise.all([
+    getTrip(supabase, user.id, tripId),
     getEvents(supabase, user.id, tripId),
     getAttachmentsForTrip(supabase, user.id, tripId),
   ]);
+
+  // Only a missing trip is a 404. Backend failures propagate to the error
+  // boundary — reporting those as "trip not found" sends you looking in the
+  // wrong place.
+  if (!trip) notFound();
 
   return <TripWorkspace trip={trip} events={events} attachments={attachments} />;
 }

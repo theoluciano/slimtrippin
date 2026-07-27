@@ -31,13 +31,14 @@ export async function POST(request: NextRequest) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const redirectTo = `${siteUrl}/auth/callback`;
+  const generateLink = () =>
+    admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo: `${siteUrl}/auth/callback` },
+    });
 
-  let { data, error } = await admin.auth.admin.generateLink({
-    type: "magiclink",
-    email,
-    options: { redirectTo },
-  });
+  let { data, error } = await generateLink();
 
   // generateLink("magiclink") only works for existing users. In dev, create the
   // user on first sign-in so there is no separate signup step.
@@ -51,11 +52,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: createError.message }, { status: 500 });
     }
 
-    ({ data, error } = await admin.auth.admin.generateLink({
-      type: "magiclink",
-      email,
-      options: { redirectTo },
-    }));
+    ({ data, error } = await generateLink());
   }
 
   if (error) {

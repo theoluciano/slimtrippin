@@ -45,6 +45,8 @@ export async function getTrips(supabase: AppSupabaseClient, ownerId: string) {
   return data;
 }
 
+/** Null when this owner has no such trip; throws on failure, so callers can tell
+ * "gone" apart from "the database is down". */
 export async function getTrip(
   supabase: AppSupabaseClient,
   ownerId: string,
@@ -55,7 +57,7 @@ export async function getTrip(
     .select("*")
     .eq("owner_id", ownerId)
     .eq("id", tripId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;

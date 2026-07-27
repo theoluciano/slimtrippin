@@ -10,12 +10,10 @@ import {
 } from "@/lib/attachments";
 
 /**
- * The attachment limits are stated in three places that cannot import each
- * other: lib/attachments.ts (validation + the helper label shown to the user),
- * the storage bucket in migration 0003 (what Supabase actually enforces), and
- * the Server Action body limit in next.config.ts (what can reach the server).
- *
- * If they drift, the UI promises a cap Supabase will reject — so pin them here.
+ * lib/attachments.ts is the source of the limits, and next.config.ts imports
+ * from it. The storage bucket in migration 0003 is what Supabase actually
+ * enforces and cannot import anything — if it drifts, the UI promises a cap
+ * Supabase will reject, so pin the two together here.
  */
 
 const migration = readFileSync(
@@ -29,7 +27,9 @@ const bucketDefinition = migration.slice(
 
 describe("attachment limits match the storage bucket", () => {
   it("uses the same per-file size cap as the bucket", () => {
-    const match = bucketDefinition.match(/\bfalse,\s*(\d+)\b/);
+    // The only bare integer in the bucket row — the other columns are the id,
+    // name, a boolean, and the mime array.
+    const match = bucketDefinition.match(/^\s*(\d+),\s*$/m);
     expect(match, "could not find file_size_limit in migration 0003").not.toBeNull();
     expect(Number(match![1])).toBe(MAX_ATTACHMENT_BYTES);
   });
@@ -46,11 +46,8 @@ describe("attachment limits match the storage bucket", () => {
 describe("attachment limits match the Server Action body limit", () => {
   it("allows a full batch to reach the server", () => {
     const limit = nextConfig.experimental?.serverActions?.bodySizeLimit;
-    expect(typeof limit).toBe("string");
-
-    const megabytes = Number(String(limit).replace(/mb$/i, ""));
-    expect(Number.isNaN(megabytes)).toBe(false);
-    expect(megabytes * 1024 * 1024).toBeGreaterThanOrEqual(MAX_ATTACHMENT_BATCH_BYTES);
+    expect(typeof limit).toBe("number");
+    expect(limit).toBeGreaterThanOrEqual(MAX_ATTACHMENT_BATCH_BYTES);
   });
 
   it("does not let a single file exceed a batch", () => {

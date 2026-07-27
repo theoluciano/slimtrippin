@@ -19,14 +19,17 @@ export async function GET(
   const { supabase, user } = await requireUser();
   const { attachmentId } = await params;
 
-  try {
-    const attachment = await getAttachment(supabase, user.id, attachmentId);
-    const signedUrl = await createAttachmentSignedUrl(supabase, attachment, {
-      download: request.nextUrl.searchParams.has("download"),
-    });
+  // Only a missing row is a 404 — a Storage or database failure propagates so it
+  // is not misreported as a file the user never had.
+  const attachment = await getAttachment(supabase, user.id, attachmentId);
 
-    return NextResponse.redirect(signedUrl);
-  } catch {
+  if (!attachment) {
     return new NextResponse("Not found", { status: 404 });
   }
+
+  const signedUrl = await createAttachmentSignedUrl(supabase, attachment, {
+    download: request.nextUrl.searchParams.has("download"),
+  });
+
+  return NextResponse.redirect(signedUrl);
 }

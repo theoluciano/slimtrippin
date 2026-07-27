@@ -9,11 +9,7 @@ import {
 import { createAttachment, deleteAttachment } from "@/lib/data/attachments";
 import { requireUser } from "@/lib/supabase/auth";
 import { requiredString, optionalString } from "@/lib/form";
-import {
-  MAX_ATTACHMENT_BYTES,
-  formatFileSize,
-  isAllowedAttachmentType,
-} from "@/lib/attachments";
+import { rejectAttachmentBatch } from "@/lib/attachments";
 import { EVENT_TYPES, type EventType } from "@/lib/types";
 
 export async function createEventAction(formData: FormData) {
@@ -68,21 +64,8 @@ export async function uploadAttachmentsAction(formData: FormData) {
     .getAll("files")
     .filter((entry): entry is File => entry instanceof File && entry.size > 0);
 
-  if (!files.length) {
-    throw new Error("Select at least one file to attach.");
-  }
-
-  for (const file of files) {
-    if (file.size > MAX_ATTACHMENT_BYTES) {
-      throw new Error(
-        `"${file.name}" is ${formatFileSize(file.size)}. The limit is ${formatFileSize(MAX_ATTACHMENT_BYTES)}.`,
-      );
-    }
-
-    if (!isAllowedAttachmentType(file.type)) {
-      throw new Error(`"${file.name}" is not a supported file type.`);
-    }
-  }
+  const rejection = rejectAttachmentBatch(files);
+  if (rejection) throw new Error(rejection);
 
   // Sequential so the first failure surfaces without leaving later uploads in
   // flight against an event the user is being told the upload failed for.
